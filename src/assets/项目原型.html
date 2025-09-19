@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>对话树管理系统 - 原型设计</title>
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+		
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			min-height: 100vh;
+			color: #333;
+		}
+		
+		.container {
+			max-width: 1400px;
+			margin: 0 auto;
+			padding: 20px;
+		}
+		
+		/* 顶部导航栏 */
+		.header {
+			background: rgba(255, 255, 255, 0.95);
+			backdrop-filter: blur(10px);
+			border-radius: 16px;
+			padding: 16px 24px;
+			margin-bottom: 20px;
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+		}
+		
+		.logo {
+			font-size: 24px;
+			font-weight: bold;
+			background: linear-gradient(135deg, #667eea, #764ba2);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+		
+		.session-selector {
+			display: flex;
+			align-items: center;
+			gap: 15px;
+		}
+		
+		.session-dropdown {
+			padding: 8px 16px;
+			border: 2px solid #e0e0e0;
+			border-radius: 8px;
+			background: white;
+			cursor: pointer;
+			transition: all 0.3s;
+		}
+		
+		.session-dropdown:hover {
+			border-color: #667eea;
+		}
+		
+		.new-session-btn {
+			padding: 8px 20px;
+			background: linear-gradient(135deg, #667eea, #764ba2);
+			color: white;
+			border: none;
+			border-radius: 8px;
+			cursor: pointer;
+			transition: transform 0.2s;
+		}
+		
+		.new-session-btn:hover {
+			transform: scale(1.05);
+		}
+		
+		/* 主布局 */
+		.main-layout {
+			display: grid;
+			grid-template-columns: 250px 1fr 300px;
+			gap: 20px;
+			height: calc(100vh - 120px);
+		}
+		
+		/* 左侧分支面板 */
+		.branch-panel {
+			background: rgba(255, 255, 255, 0.95);
+			backdrop-filter: blur(10px);
+			border-radius: 16px;
+			padding: 20px;
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+			overflow-y: auto;
+		}
+		
+		.panel-title {
+			font-size: 16px;
+			font-weight: 600;
+			margin-bottom: 15px;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+		}
+		
+		.branch-item {
+			padding: 12px;
+			margin-bottom: 10px;
+			background: #f5f5f5;
+			border-radius: 8px;
+			cursor: pointer;
+			transition: all 0.3s;
+			border: 2px solid transparent;
+		}
+		
+		.branch-item.active {
+			background: linear-gradient(135deg, #667eea15, #764ba215);
+			border-color: #667eea;
+		}
+		
+		.branch-item:hover {
+			transform: translateX(5px);
+			background: #efefef;
+		}
+		
+		.branch-name {
+			font-weight: 500;
+			margin-bottom: 4px;
+		}
+		
+		.branch-info {
+			font-size: 12px;
+			color: #666;
+		}
+		
+		.create-branch-btn {
+			width: 100%;
+			padding: 10px;
+			margin-top: 15px;
+			background: #f0f0f0;
+			border: 2px dashed #ccc;
+			border-radius: 8px;
+			cursor: pointer;
+			transition: all 0.3s;
+		}
+		
+		.create-branch-btn:hover {
+			background: #e8e8e8;
+			border-color: #667eea;
+		}
+		
+		/* 中间对话区域 */
+		.chat-container {
+			background: rgba(255, 255, 255, 0.95);
+			backdrop-filter: blur(10px);
+			border-radius: 16px;
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+			display: flex;
+			flex-direction: column;
+		}
+		
+		.chat-header {
+			padding: 20px;
+			border-bottom: 1px solid #e0e0e0;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+		}
+		
+		.branch-indicator {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+		
+		.branch-tag {
+			padding: 4px 12px;
+			background: linear-gradient(135deg, #667eea, #764ba2);
+			color: white;
+			border-radius: 20px;
+			font-size: 12px;
+			font-weight: 500;
+		}
+		
+		.chat-actions {
+			display: flex;
+			gap: 10px;
+		}
+		
+		.action-btn {
+			padding: 6px 12px;
+			background: white;
+			border: 1px solid #e0e0e0;
+			border-radius: 6px;
+			cursor: pointer;
+			transition: all 0.3s;
+			font-size: 14px;
+		}
+		
+		.action-btn:hover {
+			background: #f5f5f5;
+			border-color: #667eea;
+		}
+		
+		/* 消息区域 */
+		.messages-area {
+			flex: 1;
+			padding: 20px;
+			overflow-y: auto;
+			background: linear-gradient(to bottom, #fafafa, #ffffff);
+		}
+		
+		.message {
+			margin-bottom: 20px;
+			animation: slideIn 0.3s ease;
+			position: relative;
+		}
+		
+		@keyframes slideIn {
+			from {
+				opacity: 0;
+				transform: translateY(10px);
+			}
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+		
+		.message-user {
+			display: flex;
+			justify-content: flex-end;
+		}
+		
+		.message-assistant {
+			display: flex;
+			justify-content: flex-start;
+		}
+		
+		.message-bubble {
+			max-width: 70%;
+			padding: 12px 16px;
+			border-radius: 16px;
+			position: relative;
+		}
+		
+		.message-user .message-bubble {
+			background: linear-gradient(135deg, #667eea, #764ba2);
+			color: white;
+			border-bottom-right-radius: 4px;
+		}
+		
+		.message-assistant .message-bubble {
+			background: #f0f0f0;
+			color: #333;
+			border-bottom-left-radius: 4px;
+		}
+		
+		/* 消息操作按钮 */
+		.message-actions {
+			position: absolute;
+			top: -5px;
+			right: -5px;
+			display: none;
+			gap: 5px;
+		}
+		
+		.message:hover .message-actions {
+			display: flex;
+		}
+		
+		.message-action-btn {
+			width: 28px;
+			height: 28px;
+			border-radius: 50%;
+			background: white;
+			border: 1px solid #e0e0e0;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			transition: all 0.2s;
+			font-size: 12px;
+		}
+		
+		.message-action-btn:hover {
+			background: #667eea;
+			color: white;
+			border-color: #667eea;
+			transform: scale(1.1);
+		}
+		
+		/* 编辑标记 */
+		.edited-badge {
+			display: inline-block;
+			padding: 2px 6px;
+			background: rgba(255, 255, 255, 0.3);
+			border-radius: 4px;
+			font-size: 10px;
+			margin-left: 8px;
+		}
+		
+		/* 分支提示 */
+		.fork-indicator {
+			display: inline-flex;
+			align-items: center;
+			gap: 5px;
+			padding: 6px 12px;
+			background: linear-gradient(135deg, #ffd93d15, #ff6b6b15);
+			border: 1px solid #ffd93d;
+			border-radius: 20px;
+			margin: 15px 0;
+			font-size: 12px;
+			color: #ff6b6b;
+		}
+		
+		/* 输入区域 */
+		.input-area {
+			padding: 20px;
+			border-top: 1px solid #e0e0e0;
+			background: white;
+			border-radius: 0 0 16px 16px;
+		}
+		
+		.input-container {
+			display: flex;
+			gap: 10px;
+			align-items: flex-end;
+		}
+		
+		.message-input {
+			flex: 1;
+			padding: 12px 16px;
+			border: 2px solid #e0e0e0;
+			border-radius: 24px;
+			outline: none;
+			transition: all 0.3s;
+			resize: none;
+			font-family: inherit;
+			line-height: 1.5;
+			max-height: 120px;
+		}
+		
+		.message-input:focus {
+			border-color: #667eea;
+		}
+		
+		.send-btn {
+			width: 48px;
+			height: 48px;
+			border-radius: 50%;
+			background: linear-gradient(135deg, #667eea, #764ba2);
+			color: white;
+			border: none;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			transition: transform 0.2s;
+		}
+		
+		.send-btn:hover {
+			transform: scale(1.1);
+		}
+		
+		/* 右侧历史面板 */
+		.history-panel {
+			background: rgba(255, 255, 255, 0.95);
+			backdrop-filter: blur(10px);
+			border-radius: 16px;
+			padding: 20px;
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+			overflow-y: auto;
+		}
+		
+		.history-tabs {
+			display: flex;
+			gap: 10px;
+			margin-bottom: 15px;
+		}
+		
+		.tab {
+			flex: 1;
+			padding: 8px;
+			text-align: center;
+			background: #f5f5f5;
+			border-radius: 8px;
+			cursor: pointer;
+			transition: all 0.3s;
+			font-size: 14px;
+		}
+		
+		.tab.active {
+			background: linear-gradient(135deg, #667eea, #764ba2);
+			color: white;
+		}
+		
+		/* 编辑历史项 */
+		.history-item {
+			padding: 12px;
+			margin-bottom: 10px;
+			background: #f9f9f9;
+			border-radius: 8px;
+			border-left: 3px solid #667eea;
+			transition: all 0.3s;
+		}
+		
+		.history-item:hover {
+			background: #f0f0f0;
+			transform: translateX(5px);
+		}
+		
+		.history-version {
+			font-size: 12px;
+			color: #666;
+			margin-bottom: 4px;
+		}
+		
+		.history-content {
+			font-size: 14px;
+			margin-bottom: 4px;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+		
+		.history-meta {
+			font-size: 11px;
+			color: #999;
+		}
+		
+		/* 分支树可视化 */
+		.branch-tree {
+			padding: 20px;
+			background: #fafafa;
+			border-radius: 8px;
+			margin-top: 15px;
+		}
+		
+		.tree-node {
+			display: flex;
+			align-items: center;
+			padding: 8px;
+			margin-left: 20px;
+			position: relative;
+		}
+		
+		.tree-node::before {
+			content: '';
+			position: absolute;
+			left: -15px;
+			top: 50%;
+			width: 15px;
+			height: 1px;
+			background: #ccc;
+		}
+		
+		.tree-node::after {
+			content: '';
+			position: absolute;
+			left: -15px;
+			top: 0;
+			bottom: 0;
+			width: 1px;
+			background: #ccc;
+		}
+		
+		.tree-node:last-child::after {
+			height: 50%;
+		}
+		
+		.node-dot {
+			width: 10px;
+			height: 10px;
+			border-radius: 50%;
+			background: #667eea;
+			margin-right: 8px;
+		}
+		
+		.node-label {
+			font-size: 12px;
+		}
+		
+		/* 浮动提示 */
+		.tooltip {
+			position: fixed;
+			padding: 8px 12px;
+			background: rgba(0, 0, 0, 0.8);
+			color: white;
+			border-radius: 6px;
+			font-size: 12px;
+			pointer-events: none;
+			z-index: 1000;
+			display: none;
+		}
+		
+		/* 模态对话框 */
+		.modal {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: rgba(0, 0, 0, 0.5);
+			display: none;
+			align-items: center;
+			justify-content: center;
+			z-index: 2000;
+		}
+		
+		.modal.show {
+			display: flex;
+		}
+		
+		.modal-content {
+			background: white;
+			padding: 30px;
+			border-radius: 16px;
+			max-width: 500px;
+			width: 90%;
+			animation: modalSlideIn 0.3s ease;
+		}
+		
+		@keyframes modalSlideIn {
+			from {
+				opacity: 0;
+				transform: translateY(-20px);
+			}
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+		
+		.modal-title {
+			font-size: 20px;
+			font-weight: 600;
+			margin-bottom: 20px;
+		}
+		
+		.modal-input {
+			width: 100%;
+			padding: 10px;
+			margin-bottom: 15px;
+			border: 2px solid #e0e0e0;
+			border-radius: 8px;
+			outline: none;
+		}
+		
+		.modal-input:focus {
+			border-color: #667eea;
+		}
+		
+		.modal-buttons {
+			display: flex;
+			gap: 10px;
+			justify-content: flex-end;
+		}
+		
+		.modal-btn {
+			padding: 10px 20px;
+			border-radius: 8px;
+			border: none;
+			cursor: pointer;
+			transition: all 0.3s;
+		}
+		
+		.modal-btn-primary {
+			background: linear-gradient(135deg, #667eea, #764ba2);
+			color: white;
+		}
+		
+		.modal-btn-secondary {
+			background: #f0f0f0;
+			color: #333;
+		}
+		
+		.modal-btn:hover {
+			transform: scale(1.05);
+		}
+	</style>
+</head>
+<body>
+<div class="container">
+	<!-- 顶部导航 -->
+	<div class="header">
+		<div class="logo">
+			<span>🌳</span>
+			<span>对话树管理系统</span>
+		</div>
+		<div class="session-selector">
+			<select class="session-dropdown">
+				<option>当前会话: AI助手产品设计讨论</option>
+				<option>昨天: 技术架构方案</option>
+				<option>2天前: 用户调研报告</option>
+			</select>
+			<button class="new-session-btn">+ 新建会话</button>
+		</div>
+	</div>
+	
+	<!-- 主布局 -->
+	<div class="main-layout">
+		<!-- 左侧分支面板 -->
+		<div class="branch-panel">
+			<div class="panel-title">
+				<span>🌿 分支管理</span>
+				<span style="font-size: 12px; color: #666;">共3个分支</span>
+			</div>
+			
+			<div class="branch-item active">
+				<div class="branch-name">🏷️ main (主分支)</div>
+				<div class="branch-info">HEAD: 15条消息</div>
+			</div>
+			
+			<div class="branch-item">
+				<div class="branch-name">🌱 技术实现探索</div>
+				<div class="branch-info">从消息#8分叉 · 7条消息</div>
+			</div>
+			
+			<div class="branch-item">
+				<div class="branch-name">🌸 用户体验优化</div>
+				<div class="branch-info">从消息#12分叉 · 4条消息</div>
+			</div>
+			
+			<button class="create-branch-btn">
+				+ 创建新分支
+			</button>
+			
+			<!-- 分支树可视化 -->
+			<div class="panel-title" style="margin-top: 30px;">
+				<span>🌲 分支结构</span>
+			</div>
+			<div class="branch-tree">
+				<div class="tree-node" style="margin-left: 0;">
+					<div class="node-dot"></div>
+					<div class="node-label">main</div>
+				</div>
+				<div class="tree-node">
+					<div class="node-dot" style="background: #ffd93d;"></div>
+					<div class="node-label">技术实现探索</div>
+				</div>
+				<div class="tree-node">
+					<div class="node-dot" style="background: #ff6b6b;"></div>
+					<div class="node-label">用户体验优化</div>
+				</div>
+			</div>
+		</div>
+		
+		<!-- 中间对话区域 -->
+		<div class="chat-container">
+			<div class="chat-header">
+				<div class="branch-indicator">
+					<span class="branch-tag">main分支</span>
+					<span style="font-size: 14px; color: #666;">消息 #15 / 15</span>
+				</div>
+				<div class="chat-actions">
+					<button class="action-btn">⏪ 回退</button>
+					<button class="action-btn">⏩ 前进</button>
+					<button class="action-btn">🔄 刷新</button>
+					<button class="action-btn">📊 统计</button>
+				</div>
+			</div>
+			
+			<div class="messages-area">
+				<!-- 消息示例 -->
+				<div class="message message-user">
+					<div class="message-bubble">
+						<div>我想设计一个对话管理系统，能够像Git一样管理对话历史</div>
+						<div class="message-actions">
+							<button class="message-action-btn" title="编辑">✏️</button>
+							<button class="message-action-btn" title="从这里分支">🌱</button>
+							<button class="message-action-btn" title="删除">🗑️</button>
+						</div>
+					</div>
+				</div>
+				
+				<div class="message message-assistant">
+					<div class="message-bubble">
+						<div>这是一个很有创意的想法！我们可以设计一个类似版本控制的对话系统...</div>
+						<div class="message-actions">
+							<button class="message-action-btn" title="重新生成">🔄</button>
+							<button class="message-action-btn" title="从这里分支">🌱</button>
+							<button class="message-action-btn" title="复制">📋</button>
+						</div>
+					</div>
+				</div>
+				
+				<div class="fork-indicator">
+					<span>🔀</span>
+					<span>这里有2个分支：技术实现探索、用户体验优化</span>
+				</div>
+				
+				<div class="message message-user">
+					<div class="message-bubble">
+						<div>请详细说明一下分支管理的功能
+							<span class="edited-badge">已编辑</span>
+						</div>
+						<div class="message-actions">
+							<button class="message-action-btn" title="查看编辑历史">📝</button>
+							<button class="message-action-btn" title="编辑">✏️</button>
+							<button class="message-action-btn" title="从这里分支">🌱</button>
+						</div>
+					</div>
+				</div>
+				
+				<div class="message message-assistant">
+					<div class="message-bubble">
+						<div>分支管理功能允许您：
+							1. 创建新分支探索不同对话方向
+							2. 随时切换分支查看不同的对话历史
+							3. 保留所有探索过的可能性
+							4. 合并有价值的分支内容</div>
+						<div class="message-actions">
+							<button class="message-action-btn" title="重新生成">🔄</button>
+							<button class="message-action-btn" title="从这里分支">🌱</button>
+							<button class="message-action-btn" title="复制">📋</button>
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<div class="input-area">
+				<div class="input-container">
+					<textarea class="message-input" placeholder="输入消息... (支持Markdown格式)" rows="1"></textarea>
+					<button class="send-btn">➤</button>
+				</div>
+			</div>
+		</div>
+		
+		<!-- 右侧历史面板 -->
+		<div class="history-panel">
+			<div class="panel-title">
+				<span>📜 历史记录</span>
+			</div>
+			
+			<div class="history-tabs">
+				<div class="tab active">编辑历史</div>
+				<div class="tab">回退点</div>
+			</div>
+			
+			<!-- 编辑历史 -->
+			<div class="history-list">
+				<div class="history-item">
+					<div class="history-version">版本 #3 (当前)</div>
+					<div class="history-content">请详细说明一下分支管理的功能</div>
+					<div class="history-meta">2分钟前 · 添加了"详细"</div>
+				</div>
+				
+				<div class="history-item">
+					<div class="history-version">版本 #2</div>
+					<div class="history-content">请说明一下分支管理的功能</div>
+					<div class="history-meta">5分钟前 · 修改措辞</div>
+				</div>
+				
+				<div class="history-item">
+					<div class="history-version">版本 #1 (原始)</div>
+					<div class="history-content">分支管理是怎么工作的？</div>
+					<div class="history-meta">10分钟前 · 创建</div>
+				</div>
+			</div>
+			
+			<div class="panel-title" style="margin-top: 30px;">
+				<span>💡 快速操作</span>
+			</div>
+			<div style="display: flex; flex-direction: column; gap: 10px;">
+				<button class="action-btn" style="width: 100%;">📸 创建检查点</button>
+				<button class="action-btn" style="width: 100%;">🔍 搜索消息</button>
+				<button class="action-btn" style="width: 100%;">📊 查看统计</button>
+				<button class="action-btn" style="width: 100%;">💾 导出对话</button>
+			</div>
+			
+			<div class="panel-title" style="margin-top: 30px;">
+				<span>📈 会话统计</span>
+			</div>
+			<div style="padding: 10px; background: #f9f9f9; border-radius: 8px;">
+				<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+					<span style="font-size: 12px; color: #666;">总消息数</span>
+					<span style="font-size: 14px; font-weight: 500;">26条</span>
+				</div>
+				<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+					<span style="font-size: 12px; color: #666;">分支数量</span>
+					<span style="font-size: 14px; font-weight: 500;">3个</span>
+				</div>
+				<div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+					<span style="font-size: 12px; color: #666;">编辑次数</span>
+					<span style="font-size: 14px; font-weight: 500;">7次</span>
+				</div>
+				<div style="display: flex; justify-content: space-between;">
+					<span style="font-size: 12px; color: #666;">Token使用</span>
+					<span style="font-size: 14px; font-weight: 500;">8,432</span>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- 创建分支模态框 -->
+<div class="modal" id="branchModal">
+	<div class="modal-content">
+		<div class="modal-title">🌱 创建新分支</div>
+		<input type="text" class="modal-input" placeholder="分支名称（例如：功能探索）">
+		<textarea class="modal-input" placeholder="分支描述（可选）" rows="3"></textarea>
+		<div class="modal-buttons">
+			<button class="modal-btn modal-btn-secondary" onclick="closeModal()">取消</button>
+			<button class="modal-btn modal-btn-primary">创建分支</button>
+		</div>
+	</div>
+</div>
+
+<!-- 编辑消息模态框 -->
+<div class="modal" id="editModal">
+	<div class="modal-content">
+		<div class="modal-title">✏️ 编辑消息</div>
+		<textarea class="modal-input" rows="5">原始消息内容...</textarea>
+		<input type="text" class="modal-input" placeholder="编辑原因（可选）">
+		<label style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
+			<input type="checkbox" checked>
+			<span style="font-size: 14px;">重新生成AI回复</span>
+		</label>
+		<div class="modal-buttons">
+			<button class="modal-btn modal-btn-secondary">取消</button>
+			<button class="modal-btn modal-btn-primary">保存修改</button>
+		</div>
+	</div>
+</div>
+
+<script>
+	// 交互逻辑示例
+	document.querySelectorAll('.create-branch-btn').forEach(btn => {
+		btn.addEventListener('click', () => {
+			document.getElementById('branchModal').classList.add('show');
+		});
+	});
+	
+	document.querySelectorAll('.message-action-btn').forEach(btn => {
+		btn.addEventListener('click', (e) => {
+			const action = btn.getAttribute('title');
+			if (action === '编辑') {
+				document.getElementById('editModal').classList.add('show');
+			} else if (action === '从这里分支') {
+				document.getElementById('branchModal').classList.add('show');
+			}
+		});
+	});
+	
+	function closeModal() {
+		document.querySelectorAll('.modal').forEach(modal => {
+			modal.classList.remove('show');
+		});
+	}
+	
+	// 点击模态框背景关闭
+	document.querySelectorAll('.modal').forEach(modal => {
+		modal.addEventListener('click', (e) => {
+			if (e.target === modal) {
+				modal.classList.remove('show');
+			}
+		});
+	});
+	
+	// 分支切换动画
+	document.querySelectorAll('.branch-item').forEach(item => {
+		item.addEventListener('click', () => {
+			document.querySelectorAll('.branch-item').forEach(i => i.classList.remove('active'));
+			item.classList.add('active');
+		});
+	});
+	
+	// 标签页切换
+	document.querySelectorAll('.tab').forEach(tab => {
+		tab.addEventListener('click', () => {
+			document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+			tab.classList.add('active');
+		});
+	});
+	
+	// 输入框自动调整高度
+	const messageInput = document.querySelector('.message-input');
+	messageInput.addEventListener('input', function() {
+		this.style.height = 'auto';
+		this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+	});
+</script>
+</body>
+</html>
