@@ -1,0 +1,2439 @@
+openapi: "3.0.1"
+info:
+  title: "API Documentation"
+  version: "1.0"
+paths:
+  /edit/message/edit:
+    put:
+      summary: "编辑消息"
+      description: "编辑消息"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "messageId"
+              - "newContent"
+              type: "object"
+              properties:
+                messageId:
+                  type: "integer"
+                  description: "要编辑的消息ID"
+                  format: "int64"
+                newContent:
+                  type: "string"
+                  description: "新的消息内容"
+                editReason:
+                  type: "string"
+                  description: "编辑原因（可选）\n记录为什么要编辑这条消息，方便后续回溯"
+                regenerateResponse:
+                  type: "boolean"
+                  description: "是否重新生成后续的AI回复\ntrue: 编辑后自动让AI基于新内容重新回复\nfalse: 仅编辑\
+                    消息，不影响后续对话"
+                  default: "false"
+              description: "编辑请求"
+      responses:
+        "200":
+          description: "编辑后的消息"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      sessionId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      parentId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      role:
+                        type: "string"
+                        description: ""
+                      content:
+                        type: "string"
+                        description: ""
+                      messageType:
+                        type: "string"
+                        description: ""
+                      attachments:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "string"
+                      tokenCount:
+                        type: "integer"
+                        description: ""
+                      edited:
+                        type: "boolean"
+                        description: ""
+                      createTime:
+                        type: "string"
+                        description: ""
+                      metadata:
+                        type: "object"
+                        properties:
+                          key:
+                            type: "object"
+                            properties: {}
+                        description: ""
+                      childrenCount:
+                        type: "integer"
+                        description: "子消息数量\n用于前端展示分支提示"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "编辑后的消息"
+  /edit/message/{messageId}/history:
+    get:
+      summary: "获取消息的编辑历史"
+      description: "获取消息的编辑历史"
+      parameters:
+      - name: "messageId"
+        in: "path"
+        description: "消息ID"
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: "编辑历史列表"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "array"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                    items:
+                      type: "object"
+                      properties:
+                        versionIndex:
+                          type: "integer"
+                          description: "版本索引\n0: 原始版本\n1+: 编辑版本（按时间顺序）"
+                        content:
+                          type: "string"
+                          description: "该版本的内容"
+                        editTime:
+                          type: "string"
+                          description: "编辑时间\n原始版本为创建时间"
+                        editorId:
+                          type: "integer"
+                          description: "编辑者ID"
+                          format: "int64"
+                        editReason:
+                          type: "string"
+                          description: "编辑原因\n记录为什么要进行这次编辑"
+                        isCurrent:
+                          type: "boolean"
+                          description: "是否为当前版本"
+                        charDifference:
+                          type: "integer"
+                          description: "与前一版本的字符差异数\n用于显示变更量"
+                      description: "消息编辑历史记录\n\n记录消息的每次编辑，包括原始版本。\n就像Git的commit历史，\
+                        可以看到每次变更的内容和时间。"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "编辑历史列表"
+  /edit/message/{messageId}/restore/{versionIndex}:
+    put:
+      summary: "恢复消息到指定版本"
+      description: "恢复消息到指定版本"
+      parameters:
+      - name: "messageId"
+        in: "path"
+        description: "消息ID"
+        required: true
+        schema:
+          type: "integer"
+      - name: "versionIndex"
+        in: "path"
+        description: "版本索引（0为原始版本）"
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: "恢复后的消息"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      sessionId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      parentId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      role:
+                        type: "string"
+                        description: ""
+                      content:
+                        type: "string"
+                        description: ""
+                      messageType:
+                        type: "string"
+                        description: ""
+                      attachments:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "string"
+                      tokenCount:
+                        type: "integer"
+                        description: ""
+                      edited:
+                        type: "boolean"
+                        description: ""
+                      createTime:
+                        type: "string"
+                        description: ""
+                      metadata:
+                        type: "object"
+                        properties:
+                          key:
+                            type: "object"
+                            properties: {}
+                        description: ""
+                      childrenCount:
+                        type: "integer"
+                        description: "子消息数量\n用于前端展示分支提示"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "恢复后的消息"
+  /edit/message/{messageId}/diff:
+    get:
+      summary: "比较两个版本的差异"
+      description: "比较两个版本的差异"
+      parameters:
+      - name: "messageId"
+        in: "path"
+        description: "消息ID"
+        required: true
+        schema:
+          type: "integer"
+      - name: "fromVersion"
+        in: "query"
+        description: "起始版本索引"
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+      - name: "toVersion"
+        in: "query"
+        description: "目标版本索引"
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+      responses:
+        "200":
+          description: "差异信息"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      key:
+                        type: "object"
+                        properties: {}
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "差异信息"
+  /branch/create:
+    post:
+      summary: "创建新分支"
+      description: "创建新分支"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "sessionId"
+              type: "object"
+              properties:
+                sessionId:
+                  type: "integer"
+                  description: "会话ID\n标识这个分支属于哪个会话"
+                  format: "int64"
+                forkMessageId:
+                  type: "integer"
+                  description: "分叉点消息ID\n从哪条消息开始分叉。\n如果为空，表示从当前分支的HEAD开始分叉"
+                  format: "int64"
+                parentBranchId:
+                  type: "integer"
+                  description: "父分支ID\n从哪个分支派生出来。\n如果为空，使用当前活跃分支作为父分支"
+                  format: "int64"
+                branchName:
+                  type: "string"
+                  description: "分支名称\n用户为这个分支起的名字。\n如果为空，系统会自动生成名称"
+                description:
+                  type: "string"
+                  description: "分支描述\n记录创建这个分支的目的或想探索的方向"
+                forkReason:
+                  type: "string"
+                  description: "分叉原因\n记录为什么要在这里创建分支，方便后续回顾"
+                switchToNewBranch:
+                  type: "boolean"
+                  description: "是否切换到新分支\ntrue: 创建后立即切换到新分支\nfalse: 仅创建分支，保持在当前分支"
+                  default: "false"
+              description: "创建分支的请求参数"
+      responses:
+        "200":
+          description: "新创建的分支信息"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      sessionId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      name:
+                        type: "string"
+                        description: ""
+                      description:
+                        type: "string"
+                        description: ""
+                      parentBranchId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      forkMessageId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      headMessageId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      isMain:
+                        type: "boolean"
+                        description: ""
+                      status:
+                        type: "string"
+                        description: ""
+                      createTime:
+                        type: "string"
+                        description: ""
+                      updateTime:
+                        type: "string"
+                        description: ""
+                      forkMessagePreview:
+                        type: "string"
+                        description: "分叉点消息的内容预览\n帮助用户快速了解这个分支是从哪里开始的"
+                      headMessagePreview:
+                        type: "string"
+                        description: "HEAD消息的内容预览\n显示分支的最新进展"
+                      messageCount:
+                        type: "integer"
+                        description: "分支中的消息数量\n从分叉点到HEAD的消息数"
+                      divergenceDepth:
+                        type: "integer"
+                        description: "分叉深度\nHEAD与分叉点之间的深度差"
+                      metadata:
+                        type: "object"
+                        properties:
+                          key:
+                            type: "object"
+                            properties: {}
+                        description: "分支元数据\n存储额外信息，如切换历史、标签等"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "新创建的分支信息"
+  /branch/{sessionId}/switch/{branchId}:
+    put:
+      summary: "切换到指定分支"
+      description: "切换到指定分支"
+      parameters:
+      - name: "sessionId"
+        in: "path"
+        description: "会话ID"
+        required: true
+        schema:
+          type: "integer"
+      - name: "branchId"
+        in: "path"
+        description: "目标分支ID"
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: "切换后的分支信息"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      sessionId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      name:
+                        type: "string"
+                        description: ""
+                      description:
+                        type: "string"
+                        description: ""
+                      parentBranchId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      forkMessageId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      headMessageId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      isMain:
+                        type: "boolean"
+                        description: ""
+                      status:
+                        type: "string"
+                        description: ""
+                      createTime:
+                        type: "string"
+                        description: ""
+                      updateTime:
+                        type: "string"
+                        description: ""
+                      forkMessagePreview:
+                        type: "string"
+                        description: "分叉点消息的内容预览\n帮助用户快速了解这个分支是从哪里开始的"
+                      headMessagePreview:
+                        type: "string"
+                        description: "HEAD消息的内容预览\n显示分支的最新进展"
+                      messageCount:
+                        type: "integer"
+                        description: "分支中的消息数量\n从分叉点到HEAD的消息数"
+                      divergenceDepth:
+                        type: "integer"
+                        description: "分叉深度\nHEAD与分叉点之间的深度差"
+                      metadata:
+                        type: "object"
+                        properties:
+                          key:
+                            type: "object"
+                            properties: {}
+                        description: "分支元数据\n存储额外信息，如切换历史、标签等"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "切换后的分支信息"
+  /branch/{sessionId}/list:
+    get:
+      summary: "获取会话的所有分支列表"
+      description: "获取会话的所有分支列表"
+      parameters:
+      - name: "sessionId"
+        in: "path"
+        description: "会话ID"
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: "分支列表"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "array"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "integer"
+                          description: ""
+                          format: "int64"
+                        sessionId:
+                          type: "integer"
+                          description: ""
+                          format: "int64"
+                        name:
+                          type: "string"
+                          description: ""
+                        description:
+                          type: "string"
+                          description: ""
+                        parentBranchId:
+                          type: "integer"
+                          description: ""
+                          format: "int64"
+                        forkMessageId:
+                          type: "integer"
+                          description: ""
+                          format: "int64"
+                        headMessageId:
+                          type: "integer"
+                          description: ""
+                          format: "int64"
+                        isMain:
+                          type: "boolean"
+                          description: ""
+                        status:
+                          type: "string"
+                          description: ""
+                        createTime:
+                          type: "string"
+                          description: ""
+                        updateTime:
+                          type: "string"
+                          description: ""
+                        forkMessagePreview:
+                          type: "string"
+                          description: "分叉点消息的内容预览\n帮助用户快速了解这个分支是从哪里开始的"
+                        headMessagePreview:
+                          type: "string"
+                          description: "HEAD消息的内容预览\n显示分支的最新进展"
+                        messageCount:
+                          type: "integer"
+                          description: "分支中的消息数量\n从分叉点到HEAD的消息数"
+                        divergenceDepth:
+                          type: "integer"
+                          description: "分叉深度\nHEAD与分叉点之间的深度差"
+                        metadata:
+                          type: "object"
+                          properties:
+                            key:
+                              type: "object"
+                              properties: {}
+                          description: "分支元数据\n存储额外信息，如切换历史、标签等"
+                      description: "分支响应DTO\n\n返回给前端的分支信息。\n包含分支的基本信息和一些计算得出的统计数据。"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "分支列表"
+  /branch/detail/{branchId}:
+    get:
+      summary: "获取分支详情"
+      description: "获取分支详情"
+      parameters:
+      - name: "branchId"
+        in: "path"
+        description: "分支ID"
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: "分支详细信息"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      sessionId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      name:
+                        type: "string"
+                        description: ""
+                      description:
+                        type: "string"
+                        description: ""
+                      parentBranchId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      forkMessageId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      headMessageId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      isMain:
+                        type: "boolean"
+                        description: ""
+                      status:
+                        type: "string"
+                        description: ""
+                      createTime:
+                        type: "string"
+                        description: ""
+                      updateTime:
+                        type: "string"
+                        description: ""
+                      forkMessagePreview:
+                        type: "string"
+                        description: "分叉点消息的内容预览\n帮助用户快速了解这个分支是从哪里开始的"
+                      headMessagePreview:
+                        type: "string"
+                        description: "HEAD消息的内容预览\n显示分支的最新进展"
+                      messageCount:
+                        type: "integer"
+                        description: "分支中的消息数量\n从分叉点到HEAD的消息数"
+                      divergenceDepth:
+                        type: "integer"
+                        description: "分叉深度\nHEAD与分叉点之间的深度差"
+                      metadata:
+                        type: "object"
+                        properties:
+                          key:
+                            type: "object"
+                            properties: {}
+                        description: "分支元数据\n存储额外信息，如切换历史、标签等"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "分支详细信息"
+  /branch/{sessionId}/tree:
+    get:
+      summary: "获取分支树结构"
+      description: "获取分支树结构"
+      parameters:
+      - name: "sessionId"
+        in: "path"
+        description: "会话ID"
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: "分支树结构"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      sessionId:
+                        type: "integer"
+                        description: "会话ID"
+                        format: "int64"
+                      activeBranchId:
+                        type: "integer"
+                        description: "当前活跃的分支ID\n用于前端高亮显示"
+                        format: "int64"
+                      totalBranches:
+                        type: "integer"
+                        description: "分支总数"
+                      root:
+                        type: "object"
+                        properties:
+                          id:
+                            type: "integer"
+                            description: ""
+                            format: "int64"
+                          name:
+                            type: "string"
+                            description: ""
+                          description:
+                            type: "string"
+                            description: ""
+                          isMain:
+                            type: "boolean"
+                            description: ""
+                          status:
+                            type: "string"
+                            description: ""
+                          forkMessageId:
+                            type: "integer"
+                            description: ""
+                            format: "int64"
+                          headMessageId:
+                            type: "integer"
+                            description: ""
+                            format: "int64"
+                          createTime:
+                            type: "string"
+                            description: ""
+                          children:
+                            type: "array"
+                            description: "子分支列表\n递归包含所有派生分支"
+                            items:
+                              type: "object"
+                              properties:
+                                id:
+                                  type: "integer"
+                                  description: ""
+                                  format: "int64"
+                                name:
+                                  type: "string"
+                                  description: ""
+                                description:
+                                  type: "string"
+                                  description: ""
+                                isMain:
+                                  type: "boolean"
+                                  description: ""
+                                status:
+                                  type: "string"
+                                  description: ""
+                                forkMessageId:
+                                  type: "integer"
+                                  description: ""
+                                  format: "int64"
+                                headMessageId:
+                                  type: "integer"
+                                  description: ""
+                                  format: "int64"
+                                createTime:
+                                  type: "string"
+                                  description: ""
+                                children:
+                                  type: "array"
+                                  description: "子分支列表\n递归包含所有派生分支"
+                                  items:
+                                    type: "object"
+                                    properties: {}
+                                    description: "分支树节点\n递归结构，每个节点可以有多个子节点"
+                                depth:
+                                  type: "integer"
+                                  description: "节点的深度\n主分支深度为0，每派生一层深度加1"
+                                isOnActivePath:
+                                  type: "boolean"
+                                  description: "是否为当前路径上的节点\n用于高亮显示从根到当前分支的路径"
+                              description: "分支树节点\n递归结构，每个节点可以有多个子节点"
+                          depth:
+                            type: "integer"
+                            description: "节点的深度\n主分支深度为0，每派生一层深度加1"
+                          isOnActivePath:
+                            type: "boolean"
+                            description: "是否为当前路径上的节点\n用于高亮显示从根到当前分支的路径"
+                        description: "树的根节点（主分支）"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "分支树结构"
+  /branch/{branchId}:
+    delete:
+      summary: "删除分支"
+      description: "删除分支"
+      parameters:
+      - name: "branchId"
+        in: "path"
+        description: "分支ID"
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: "操作结果"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "string"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "操作结果"
+  /branch/{branchId}/rename:
+    put:
+      summary: "重命名分支"
+      description: "重命名分支"
+      parameters:
+      - name: "branchId"
+        in: "path"
+        description: "分支ID"
+        required: true
+        schema:
+          type: "integer"
+      - name: "name"
+        in: "query"
+        description: "新名称"
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      - name: "description"
+        in: "query"
+        description: "新描述（可选）"
+        required: false
+        schema:
+          type: "string"
+          nullable: false
+      responses:
+        "200":
+          description: "更新后的分支信息"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      sessionId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      name:
+                        type: "string"
+                        description: ""
+                      description:
+                        type: "string"
+                        description: ""
+                      parentBranchId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      forkMessageId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      headMessageId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      isMain:
+                        type: "boolean"
+                        description: ""
+                      status:
+                        type: "string"
+                        description: ""
+                      createTime:
+                        type: "string"
+                        description: ""
+                      updateTime:
+                        type: "string"
+                        description: ""
+                      forkMessagePreview:
+                        type: "string"
+                        description: "分叉点消息的内容预览\n帮助用户快速了解这个分支是从哪里开始的"
+                      headMessagePreview:
+                        type: "string"
+                        description: "HEAD消息的内容预览\n显示分支的最新进展"
+                      messageCount:
+                        type: "integer"
+                        description: "分支中的消息数量\n从分叉点到HEAD的消息数"
+                      divergenceDepth:
+                        type: "integer"
+                        description: "分叉深度\nHEAD与分叉点之间的深度差"
+                      metadata:
+                        type: "object"
+                        properties:
+                          key:
+                            type: "object"
+                            properties: {}
+                        description: "分支元数据\n存储额外信息，如切换历史、标签等"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "更新后的分支信息"
+  /branch/fork-here:
+    post:
+      summary: "从当前位置快速创建分支"
+      description: "从当前位置快速创建分支"
+      parameters:
+      - name: "sessionId"
+        in: "query"
+        description: "会话ID"
+        required: true
+        schema:
+          type: "integer"
+          nullable: false
+      - name: "branchName"
+        in: "query"
+        description: "分支名称（可选）"
+        required: false
+        schema:
+          type: "string"
+          nullable: false
+      responses:
+        "200":
+          description: "新创建的分支信息"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      sessionId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      name:
+                        type: "string"
+                        description: ""
+                      description:
+                        type: "string"
+                        description: ""
+                      parentBranchId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      forkMessageId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      headMessageId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      isMain:
+                        type: "boolean"
+                        description: ""
+                      status:
+                        type: "string"
+                        description: ""
+                      createTime:
+                        type: "string"
+                        description: ""
+                      updateTime:
+                        type: "string"
+                        description: ""
+                      forkMessagePreview:
+                        type: "string"
+                        description: "分叉点消息的内容预览\n帮助用户快速了解这个分支是从哪里开始的"
+                      headMessagePreview:
+                        type: "string"
+                        description: "HEAD消息的内容预览\n显示分支的最新进展"
+                      messageCount:
+                        type: "integer"
+                        description: "分支中的消息数量\n从分叉点到HEAD的消息数"
+                      divergenceDepth:
+                        type: "integer"
+                        description: "分叉深度\nHEAD与分叉点之间的深度差"
+                      metadata:
+                        type: "object"
+                        properties:
+                          key:
+                            type: "object"
+                            properties: {}
+                        description: "分支元数据\n存储额外信息，如切换历史、标签等"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "新创建的分支信息"
+  /conversation/session:
+    post:
+      summary: "创建新会话"
+      description: "创建新会话"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "title"
+              type: "object"
+              properties:
+                title:
+                  type: "string"
+                  description: "会话标题\n用户为这次对话起的名字，方便后续查找"
+                description:
+                  type: "string"
+                  description: "会话描述\n可选字段，记录这次对话的目的或背景"
+                modelName:
+                  type: "string"
+                  description: "AI模型名称\n默认使用gpt-4，用户可以选择其他模型"
+                modelConfig:
+                  type: "object"
+                  properties:
+                    key:
+                      type: "object"
+                      properties: {}
+                  description: "模型参数配置\ntemperature: 控制回复的随机性(0-2)\nmax_tokens: 最大\
+                    回复长度\ntop_p: 核采样参数\n等等..."
+              description: "创建会话的请求参数"
+      responses:
+        "200":
+          description: "包含会话信息的响应"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      title:
+                        type: "string"
+                        description: ""
+                      description:
+                        type: "string"
+                        description: ""
+                      userId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      activeBranchId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      modelName:
+                        type: "string"
+                        description: ""
+                      modelConfig:
+                        type: "object"
+                        properties:
+                          key:
+                            type: "object"
+                            properties: {}
+                        description: ""
+                      status:
+                        type: "string"
+                        description: ""
+                      createTime:
+                        type: "string"
+                        description: ""
+                      lastActiveTime:
+                        type: "string"
+                        description: ""
+                      activeBranch:
+                        type: "object"
+                        properties:
+                          id:
+                            type: "integer"
+                            description: ""
+                            format: "int64"
+                          name:
+                            type: "string"
+                            description: ""
+                          headMessageId:
+                            type: "integer"
+                            description: ""
+                            format: "int64"
+                          status:
+                            type: "string"
+                            description: ""
+                        description: "当前活跃分支的信息\n包含分支名称、HEAD消息等"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "包含会话信息的响应"
+  /conversation/message:
+    post:
+      summary: "发送消息并获取AI回复"
+      description: "发送消息并获取AI回复"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "content"
+              - "sessionId"
+              type: "object"
+              properties:
+                sessionId:
+                  type: "integer"
+                  description: "会话ID\n标识消息属于哪个会话"
+                  format: "int64"
+                content:
+                  type: "string"
+                  description: "消息内容\n用户输入的文本"
+                messageType:
+                  type: "string"
+                  description: "消息类型\nTEXT: 纯文本（默认）\nMARKDOWN: Markdown格式\nCODE: 代\
+                    码"
+                  default: "TEXT"
+                attachments:
+                  type: "array"
+                  description: "附件URL列表\n支持图片、文件等附件"
+                  items:
+                    type: "string"
+                parentId:
+                  type: "integer"
+                  description: "父消息ID\n如果为空，系统会自动使用当前分支的HEAD作为父消息\n用户也可以指定特定的父消息，实\
+                    现从历史节点发送新消息"
+                  format: "int64"
+                branchId:
+                  type: "integer"
+                  description: "目标分支ID\n如果为空，使用会话的当前活跃分支"
+                  format: "int64"
+              description: "发送消息的请求参数"
+      responses:
+        "200":
+          description: "AI的回复消息"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      sessionId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      parentId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      role:
+                        type: "string"
+                        description: ""
+                      content:
+                        type: "string"
+                        description: ""
+                      messageType:
+                        type: "string"
+                        description: ""
+                      attachments:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "string"
+                      tokenCount:
+                        type: "integer"
+                        description: ""
+                      edited:
+                        type: "boolean"
+                        description: ""
+                      createTime:
+                        type: "string"
+                        description: ""
+                      metadata:
+                        type: "object"
+                        properties:
+                          key:
+                            type: "object"
+                            properties: {}
+                        description: ""
+                      childrenCount:
+                        type: "integer"
+                        description: "子消息数量\n用于前端展示分支提示"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "AI的回复消息"
+  /conversation/{sessionId}/history:
+    get:
+      summary: "获取会话的对话历史"
+      description: "获取会话的对话历史"
+      parameters:
+      - name: "sessionId"
+        in: "path"
+        description: "会话ID"
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: "按时间顺序排列的消息列表"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "array"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "integer"
+                          description: ""
+                          format: "int64"
+                        sessionId:
+                          type: "integer"
+                          description: ""
+                          format: "int64"
+                        parentId:
+                          type: "integer"
+                          description: ""
+                          format: "int64"
+                        role:
+                          type: "string"
+                          description: ""
+                        content:
+                          type: "string"
+                          description: ""
+                        messageType:
+                          type: "string"
+                          description: ""
+                        attachments:
+                          type: "array"
+                          description: ""
+                          items:
+                            type: "string"
+                        tokenCount:
+                          type: "integer"
+                          description: ""
+                        edited:
+                          type: "boolean"
+                          description: ""
+                        createTime:
+                          type: "string"
+                          description: ""
+                        metadata:
+                          type: "object"
+                          properties:
+                            key:
+                              type: "object"
+                              properties: {}
+                          description: ""
+                        childrenCount:
+                          type: "integer"
+                          description: "子消息数量\n用于前端展示分支提示"
+                      description: "消息响应DTO\n\n返回给前端的消息信息，包含消息内容和元数据。"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "按时间顺序排列的消息列表"
+  /conversation/{sessionId}:
+    get:
+      summary: "获取会话详情"
+      description: "获取会话详情"
+      parameters:
+      - name: "sessionId"
+        in: "path"
+        description: "会话ID"
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: "会话详细信息"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      title:
+                        type: "string"
+                        description: ""
+                      description:
+                        type: "string"
+                        description: ""
+                      userId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      activeBranchId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      modelName:
+                        type: "string"
+                        description: ""
+                      modelConfig:
+                        type: "object"
+                        properties:
+                          key:
+                            type: "object"
+                            properties: {}
+                        description: ""
+                      status:
+                        type: "string"
+                        description: ""
+                      createTime:
+                        type: "string"
+                        description: ""
+                      lastActiveTime:
+                        type: "string"
+                        description: ""
+                      activeBranch:
+                        type: "object"
+                        properties:
+                          id:
+                            type: "integer"
+                            description: ""
+                            format: "int64"
+                          name:
+                            type: "string"
+                            description: ""
+                          headMessageId:
+                            type: "integer"
+                            description: ""
+                            format: "int64"
+                          status:
+                            type: "string"
+                            description: ""
+                        description: "当前活跃分支的信息\n包含分支名称、HEAD消息等"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "会话详细信息"
+  /conversation/sessions:
+    get:
+      summary: "获取用户的会话列表"
+      description: "获取用户的会话列表"
+      parameters:
+      - name: "limit"
+        in: "query"
+        description: "返回数量限制（可选，默认20）"
+        required: false
+        schema:
+          type: "integer"
+          nullable: false
+          default: "20"
+      responses:
+        "200":
+          description: "会话列表"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "array"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                    items:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "integer"
+                          description: ""
+                          format: "int64"
+                        title:
+                          type: "string"
+                          description: ""
+                        description:
+                          type: "string"
+                          description: ""
+                        userId:
+                          type: "integer"
+                          description: ""
+                          format: "int64"
+                        activeBranchId:
+                          type: "integer"
+                          description: ""
+                          format: "int64"
+                        modelName:
+                          type: "string"
+                          description: ""
+                        modelConfig:
+                          type: "object"
+                          properties:
+                            key:
+                              type: "object"
+                              properties: {}
+                          description: ""
+                        status:
+                          type: "string"
+                          description: ""
+                        createTime:
+                          type: "string"
+                          description: ""
+                        lastActiveTime:
+                          type: "string"
+                          description: ""
+                        activeBranch:
+                          type: "object"
+                          properties:
+                            id:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            name:
+                              type: "string"
+                              description: ""
+                            headMessageId:
+                              type: "integer"
+                              description: ""
+                              format: "int64"
+                            status:
+                              type: "string"
+                              description: ""
+                          description: "当前活跃分支的信息\n包含分支名称、HEAD消息等"
+                      description: "会话响应DTO\n\n返回给前端的会话信息，包含了会话的完整状态。"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "会话列表"
+  /message/manage/{messageId}:
+    delete:
+      summary: "删除消息"
+      description: "删除消息"
+      parameters:
+      - name: "messageId"
+        in: "path"
+        description: "要删除的消息ID"
+        required: true
+        schema:
+          type: "integer"
+      - name: "cascade"
+        in: "query"
+        description: "是否级联删除子消息（默认false）"
+        required: false
+        schema:
+          type: "boolean"
+          nullable: false
+          default: "false"
+      responses:
+        "200":
+          description: "删除结果，包含受影响的消息数量"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      deletedMessageId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      deletedCount:
+                        type: "integer"
+                        description: "包含子节点的总删除数"
+                      newHeadId:
+                        type: "integer"
+                        description: "如果HEAD被删除，新的HEAD ID"
+                        format: "int64"
+                      message:
+                        type: "string"
+                        description: ""
+                      affectedMessageIds:
+                        type: "array"
+                        description: "所有受影响的消息ID"
+                        items:
+                          type: "integer"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "删除结果，包含受影响的消息数量"
+  /message/manage/batch:
+    delete:
+      summary: "批量删除消息"
+      description: "批量删除消息"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: "array"
+              description: "要删除的消息ID列表"
+              items:
+                type: "integer"
+      responses:
+        "200":
+          description: "批量删除的结果"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      key:
+                        type: "object"
+                        properties: {}
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "批量删除的结果"
+  /message/manage/{messageId}/restore:
+    put:
+      summary: "恢复已删除的消息"
+      description: "恢复已删除的消息"
+      parameters:
+      - name: "messageId"
+        in: "path"
+        description: "要恢复的消息ID"
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: "恢复后的消息信息"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      id:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      sessionId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      parentId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      role:
+                        type: "string"
+                        description: ""
+                      content:
+                        type: "string"
+                        description: ""
+                      messageType:
+                        type: "string"
+                        description: ""
+                      attachments:
+                        type: "array"
+                        description: ""
+                        items:
+                          type: "string"
+                      tokenCount:
+                        type: "integer"
+                        description: ""
+                      edited:
+                        type: "boolean"
+                        description: ""
+                      createTime:
+                        type: "string"
+                        description: ""
+                      metadata:
+                        type: "object"
+                        properties:
+                          key:
+                            type: "object"
+                            properties: {}
+                        description: ""
+                      childrenCount:
+                        type: "integer"
+                        description: "子消息数量\n用于前端展示分支提示"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "恢复后的消息信息"
+  /message/manage/rollback:
+    post:
+      summary: "回退到指定消息"
+      description: "回退到指定消息"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              required:
+              - "sessionId"
+              - "targetMessageId"
+              type: "object"
+              properties:
+                sessionId:
+                  type: "integer"
+                  description: "会话ID\n标识要操作的会话"
+                  format: "int64"
+                targetMessageId:
+                  type: "integer"
+                  description: "目标消息ID\n要回退到的消息节点"
+                  format: "int64"
+                reason:
+                  type: "string"
+                  description: "回退原因（可选）\n记录为什么要执行回退，用于审计和分析"
+                saveCurrentAsCheckpoint:
+                  type: "boolean"
+                  description: "是否保存回退点\n如果为true，系统会记录当前位置作为一个可以快速恢复的点"
+                  default: "false"
+                checkpointName:
+                  type: "string"
+                  description: "检查点名称\n当saveCurrentAsCheckpoint为true时，给这个检查点起的名字"
+              description: "回退请求参数"
+      responses:
+        "200":
+          description: "回退操作的结果"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      sessionId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      branchId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      oldHeadId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      newHeadId:
+                        type: "integer"
+                        description: ""
+                        format: "int64"
+                      skippedMessageCount:
+                        type: "integer"
+                        description: "被跳过的消息数量"
+                      message:
+                        type: "string"
+                        description: ""
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "回退操作的结果"
+  /message/manage/{sessionId}/rollback-points:
+    get:
+      summary: "获取可回退的历史点"
+      description: "获取可回退的历史点"
+      parameters:
+      - name: "sessionId"
+        in: "path"
+        description: "会话ID"
+        required: true
+        schema:
+          type: "integer"
+      - name: "limit"
+        in: "query"
+        description: "返回数量限制（默认50）"
+        required: false
+        schema:
+          type: "integer"
+          nullable: false
+          default: "50"
+      responses:
+        "200":
+          description: "可回退点列表"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "array"
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                    items:
+                      type: "object"
+                      properties:
+                        messageId:
+                          type: "integer"
+                          description: ""
+                          format: "int64"
+                        role:
+                          type: "string"
+                          description: ""
+                        contentPreview:
+                          type: "string"
+                          description: ""
+                        createTime:
+                          type: "string"
+                          description: ""
+                        depth:
+                          type: "integer"
+                          description: ""
+                        isCurrentHead:
+                          type: "boolean"
+                          description: ""
+                      description: "com.wushan.jiyan.domain.dto.response.RollbackPoint"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "可回退点列表"
+  /message/manage/{sessionId}/forward:
+    post:
+      summary: "前进到最新消息"
+      description: "前进到最新消息"
+      parameters:
+      - name: "sessionId"
+        in: "path"
+        description: "会话ID"
+        required: true
+        schema:
+          type: "integer"
+      responses:
+        "200":
+          description: "前进操作的结果"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      key:
+                        type: "object"
+                        properties: {}
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "前进操作的结果"
+  /message/manage/{sessionId}/cleanup:
+    delete:
+      summary: "清理已删除的消息"
+      description: "清理已删除的消息"
+      parameters:
+      - name: "sessionId"
+        in: "path"
+        description: "会话ID  "
+        required: true
+        schema:
+          type: "integer"
+      - name: "confirm"
+        in: "query"
+        description: "确认标志，必须为\"CONFIRM\""
+        required: true
+        schema:
+          type: "string"
+          nullable: false
+      responses:
+        "200":
+          description: "清理结果"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  code:
+                    type: "integer"
+                    description: "状态码\n200: 成功\n400: 客户端错误（参数错误、验证失败等）\n401: 未认证\n\
+                      403: 无权限\n500: 服务器错误"
+                  message:
+                    type: "string"
+                    description: "响应消息\n成功时通常是\"success\"，失败时是具体的错误信息"
+                  data:
+                    type: "object"
+                    properties:
+                      key:
+                        type: "object"
+                        properties: {}
+                    description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+                  timestamp:
+                    type: "integer"
+                    description: "时间戳\n记录响应时间，方便调试和日志分析"
+                    format: "int64"
+                description: "清理结果"
+components:
+  schemas:
+    ? "消息响应DTO\n\n返回给前端的消息信息，包含消息内容和元数据。"
+    : type: "object"
+      properties:
+        id:
+          type: "integer"
+          description: ""
+          format: "int64"
+        sessionId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        parentId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        role:
+          type: "string"
+          description: ""
+        content:
+          type: "string"
+          description: ""
+        messageType:
+          type: "string"
+          description: ""
+        attachments:
+          type: "array"
+          description: ""
+          items:
+            type: "string"
+        tokenCount:
+          type: "integer"
+          description: ""
+        edited:
+          type: "boolean"
+          description: ""
+        createTime:
+          type: "string"
+          description: ""
+        metadata:
+          type: "object"
+          properties:
+            key:
+              type: "object"
+              properties: {}
+          description: ""
+        childrenCount:
+          type: "integer"
+          description: "子消息数量\n用于前端展示分支提示"
+      description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+    ? "消息编辑历史记录\n\n记录消息的每次编辑，包括原始版本。\n就像Git的commit历史，可以看到每次变更的内容和时间。"
+    : type: "object"
+      properties:
+        versionIndex:
+          type: "integer"
+          description: "版本索引\n0: 原始版本\n1+: 编辑版本（按时间顺序）"
+        content:
+          type: "string"
+          description: "该版本的内容"
+        editTime:
+          type: "string"
+          description: "编辑时间\n原始版本为创建时间"
+        editorId:
+          type: "integer"
+          description: "编辑者ID"
+          format: "int64"
+        editReason:
+          type: "string"
+          description: "编辑原因\n记录为什么要进行这次编辑"
+        isCurrent:
+          type: "boolean"
+          description: "是否为当前版本"
+        charDifference:
+          type: "integer"
+          description: "与前一版本的字符差异数\n用于显示变更量"
+      description: "消息编辑历史记录\n\n记录消息的每次编辑，包括原始版本。\n就像Git的commit历史，可以看到每次变更的内容和时间。"
+    ? "分支响应DTO\n\n返回给前端的分支信息。\n包含分支的基本信息和一些计算得出的统计数据。"
+    : type: "object"
+      properties:
+        id:
+          type: "integer"
+          description: ""
+          format: "int64"
+        sessionId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        name:
+          type: "string"
+          description: ""
+        description:
+          type: "string"
+          description: ""
+        parentBranchId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        forkMessageId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        headMessageId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        isMain:
+          type: "boolean"
+          description: ""
+        status:
+          type: "string"
+          description: ""
+        createTime:
+          type: "string"
+          description: ""
+        updateTime:
+          type: "string"
+          description: ""
+        forkMessagePreview:
+          type: "string"
+          description: "分叉点消息的内容预览\n帮助用户快速了解这个分支是从哪里开始的"
+        headMessagePreview:
+          type: "string"
+          description: "HEAD消息的内容预览\n显示分支的最新进展"
+        messageCount:
+          type: "integer"
+          description: "分支中的消息数量\n从分叉点到HEAD的消息数"
+        divergenceDepth:
+          type: "integer"
+          description: "分叉深度\nHEAD与分叉点之间的深度差"
+        metadata:
+          type: "object"
+          properties:
+            key:
+              type: "object"
+              properties: {}
+          description: "分支元数据\n存储额外信息，如切换历史、标签等"
+      description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+    ? "分支树节点\n递归结构，每个节点可以有多个子节点"
+    : type: "object"
+      properties:
+        id:
+          type: "integer"
+          description: ""
+          format: "int64"
+        name:
+          type: "string"
+          description: ""
+        description:
+          type: "string"
+          description: ""
+        isMain:
+          type: "boolean"
+          description: ""
+        status:
+          type: "string"
+          description: ""
+        forkMessageId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        headMessageId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        createTime:
+          type: "string"
+          description: ""
+        children:
+          type: "array"
+          description: "子分支列表\n递归包含所有派生分支"
+          items:
+            type: "object"
+            properties:
+              id:
+                type: "integer"
+                description: ""
+                format: "int64"
+              name:
+                type: "string"
+                description: ""
+              description:
+                type: "string"
+                description: ""
+              isMain:
+                type: "boolean"
+                description: ""
+              status:
+                type: "string"
+                description: ""
+              forkMessageId:
+                type: "integer"
+                description: ""
+                format: "int64"
+              headMessageId:
+                type: "integer"
+                description: ""
+                format: "int64"
+              createTime:
+                type: "string"
+                description: ""
+              children:
+                type: "array"
+                description: "子分支列表\n递归包含所有派生分支"
+                items:
+                  type: "object"
+                  properties: {}
+                  description: "分支树节点\n递归结构，每个节点可以有多个子节点"
+              depth:
+                type: "integer"
+                description: "节点的深度\n主分支深度为0，每派生一层深度加1"
+              isOnActivePath:
+                type: "boolean"
+                description: "是否为当前路径上的节点\n用于高亮显示从根到当前分支的路径"
+            description: "分支树节点\n递归结构，每个节点可以有多个子节点"
+        depth:
+          type: "integer"
+          description: "节点的深度\n主分支深度为0，每派生一层深度加1"
+        isOnActivePath:
+          type: "boolean"
+          description: "是否为当前路径上的节点\n用于高亮显示从根到当前分支的路径"
+      description: "树的根节点（主分支）"
+    ? "分支树响应DTO\n\n以树形结构返回会话的所有分支。\n这个结构帮助前端绘制分支图，让用户直观地看到对话的发展脉络。"
+    : type: "object"
+      properties:
+        sessionId:
+          type: "integer"
+          description: "会话ID"
+          format: "int64"
+        activeBranchId:
+          type: "integer"
+          description: "当前活跃的分支ID\n用于前端高亮显示"
+          format: "int64"
+        totalBranches:
+          type: "integer"
+          description: "分支总数"
+        root:
+          type: "object"
+          properties:
+            id:
+              type: "integer"
+              description: ""
+              format: "int64"
+            name:
+              type: "string"
+              description: ""
+            description:
+              type: "string"
+              description: ""
+            isMain:
+              type: "boolean"
+              description: ""
+            status:
+              type: "string"
+              description: ""
+            forkMessageId:
+              type: "integer"
+              description: ""
+              format: "int64"
+            headMessageId:
+              type: "integer"
+              description: ""
+              format: "int64"
+            createTime:
+              type: "string"
+              description: ""
+            children:
+              type: "array"
+              description: "子分支列表\n递归包含所有派生分支"
+              items:
+                type: "object"
+                properties:
+                  id:
+                    type: "integer"
+                    description: ""
+                    format: "int64"
+                  name:
+                    type: "string"
+                    description: ""
+                  description:
+                    type: "string"
+                    description: ""
+                  isMain:
+                    type: "boolean"
+                    description: ""
+                  status:
+                    type: "string"
+                    description: ""
+                  forkMessageId:
+                    type: "integer"
+                    description: ""
+                    format: "int64"
+                  headMessageId:
+                    type: "integer"
+                    description: ""
+                    format: "int64"
+                  createTime:
+                    type: "string"
+                    description: ""
+                  children:
+                    type: "array"
+                    description: "子分支列表\n递归包含所有派生分支"
+                    items:
+                      type: "object"
+                      properties: {}
+                      description: "分支树节点\n递归结构，每个节点可以有多个子节点"
+                  depth:
+                    type: "integer"
+                    description: "节点的深度\n主分支深度为0，每派生一层深度加1"
+                  isOnActivePath:
+                    type: "boolean"
+                    description: "是否为当前路径上的节点\n用于高亮显示从根到当前分支的路径"
+                description: "分支树节点\n递归结构，每个节点可以有多个子节点"
+            depth:
+              type: "integer"
+              description: "节点的深度\n主分支深度为0，每派生一层深度加1"
+            isOnActivePath:
+              type: "boolean"
+              description: "是否为当前路径上的节点\n用于高亮显示从根到当前分支的路径"
+          description: "树的根节点（主分支）"
+      description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+    分支信息内部类:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          description: ""
+          format: "int64"
+        name:
+          type: "string"
+          description: ""
+        headMessageId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        status:
+          type: "string"
+          description: ""
+      description: "当前活跃分支的信息\n包含分支名称、HEAD消息等"
+    ? "会话响应DTO\n\n返回给前端的会话信息，包含了会话的完整状态。"
+    : type: "object"
+      properties:
+        id:
+          type: "integer"
+          description: ""
+          format: "int64"
+        title:
+          type: "string"
+          description: ""
+        description:
+          type: "string"
+          description: ""
+        userId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        activeBranchId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        modelName:
+          type: "string"
+          description: ""
+        modelConfig:
+          type: "object"
+          properties:
+            key:
+              type: "object"
+              properties: {}
+          description: ""
+        status:
+          type: "string"
+          description: ""
+        createTime:
+          type: "string"
+          description: ""
+        lastActiveTime:
+          type: "string"
+          description: ""
+        activeBranch:
+          type: "object"
+          properties:
+            id:
+              type: "integer"
+              description: ""
+              format: "int64"
+            name:
+              type: "string"
+              description: ""
+            headMessageId:
+              type: "integer"
+              description: ""
+              format: "int64"
+            status:
+              type: "string"
+              description: ""
+          description: "当前活跃分支的信息\n包含分支名称、HEAD消息等"
+      description: "会话响应DTO\n\n返回给前端的会话信息，包含了会话的完整状态。"
+    com.wushan.jiyan.domain.dto.response.DeleteMessageResult:
+      type: "object"
+      properties:
+        deletedMessageId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        deletedCount:
+          type: "integer"
+          description: "包含子节点的总删除数"
+        newHeadId:
+          type: "integer"
+          description: "如果HEAD被删除，新的HEAD ID"
+          format: "int64"
+        message:
+          type: "string"
+          description: ""
+        affectedMessageIds:
+          type: "array"
+          description: "所有受影响的消息ID"
+          items:
+            type: "integer"
+      description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+    com.wushan.jiyan.domain.dto.response.RollbackResult:
+      type: "object"
+      properties:
+        sessionId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        branchId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        oldHeadId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        newHeadId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        skippedMessageCount:
+          type: "integer"
+          description: "被跳过的消息数量"
+        message:
+          type: "string"
+          description: ""
+      description: "响应数据\n成功时包含实际的业务数据，失败时通常为null"
+    com.wushan.jiyan.domain.dto.response.RollbackPoint:
+      type: "object"
+      properties:
+        messageId:
+          type: "integer"
+          description: ""
+          format: "int64"
+        role:
+          type: "string"
+          description: ""
+        contentPreview:
+          type: "string"
+          description: ""
+        createTime:
+          type: "string"
+          description: ""
+        depth:
+          type: "integer"
+          description: ""
+        isCurrentHead:
+          type: "boolean"
+          description: ""
+      description: "com.wushan.jiyan.domain.dto.response.RollbackPoint"
